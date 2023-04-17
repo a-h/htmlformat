@@ -178,10 +178,6 @@ func printChildren(w io.Writer, n *html.Node, level int) (err error) {
 }
 
 func printIndent(w io.Writer, level int) (err error) {
-	for ; level > 0; level-- {
-		if _, err = fmt.Fprint(w, " "); err != nil {
-			return
-		}
-	}
-	return
+	_, err = fmt.Fprint(w, strings.Repeat(" ", level))
+	return err
 }
