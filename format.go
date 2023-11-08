@@ -59,7 +59,7 @@ func printPre(w io.Writer, n *html.Node) (err error) {
 			return
 		}
 		for _, a := range n.Attr {
-			val := a.Val
+			val := html.EscapeString(a.Val)
 			if _, err = fmt.Fprintf(w, ` %s="%s"`, a.Key, val); err != nil {
 				return
 			}
@@ -130,7 +130,8 @@ func printNode(w io.Writer, n *html.Node, level int) (err error) {
 			return
 		}
 		for _, a := range n.Attr {
-			if _, err = fmt.Fprintf(w, ` %s="%s"`, a.Key, a.Val); err != nil {
+			val := html.EscapeString(a.Val)
+			if _, err = fmt.Fprintf(w, ` %s="%s"`, a.Key, val); err != nil {
 				return
 			}
 		}

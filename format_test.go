@@ -14,10 +14,43 @@ func TestFormat(t *testing.T) {
 		expected string
 	}{
 		{
-			name:  "html elements are indented",
+			name:  "missing closing tags are inserted",
+			input: `<li>`,
+			expected: `<li>
+</li>
+`,
+		},
+		{
+			name:  "html attribute escaping is normalized",
+			input: `<ol> <li style="&amp;&#38;"> A </li> <li> B </li> </ol> `,
+			expected: `<ol>
+ <li style="&amp;&amp;">
+  A
+ </li>
+ <li>
+  B
+ </li>
+</ol>
+`,
+		},
+		{
+			name:  "bare ampersands are escaped",
 			input: `<ol> <li style="&"> A </li> <li> B </li> </ol> `,
 			expected: `<ol>
- <li style="&">
+ <li style="&amp;">
+  A
+ </li>
+ <li>
+  B
+ </li>
+</ol>
+`,
+		},
+		{
+			name:  "html elements are indented",
+			input: `<ol> <li class="name"> A </li> <li> B </li> </ol> `,
+			expected: `<ol>
+ <li class="name">
   A
  </li>
  <li>
