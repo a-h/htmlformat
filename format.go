@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -109,6 +111,15 @@ func isVoidElement(n *html.Node) bool {
 	return false
 }
 
+func getFirstRune(s string) rune {
+	r, _ := utf8.DecodeRuneInString(s)
+	return r
+}
+
+func hasSingleTextChild(n *html.Node) bool {
+	return n != nil && n.FirstChild != nil && n.FirstChild == n.LastChild && n.FirstChild.Type == html.TextNode
+}
+
 func printNode(w io.Writer, n *html.Node, pre bool, level int) (err error) {
 	switch n.Type {
 	case html.TextNode:
@@ -121,11 +132,19 @@ func printNode(w io.Writer, n *html.Node, pre bool, level int) (err error) {
 		s := n.Data
 		s = strings.TrimSpace(s)
 		if s != "" {
-			if err = printIndent(w, level); err != nil {
+			if !hasSingleTextChild(n.Parent) &&
+				(n.PrevSibling == nil || !unicode.IsPunct(getFirstRune(s))) {
+				if err = printIndent(w, level); err != nil {
+					return
+				}
+			}
+			if _, err = fmt.Fprint(w, s); err != nil {
 				return
 			}
-			if _, err = fmt.Fprintln(w, s); err != nil {
-				return
+			if !hasSingleTextChild(n.Parent) {
+				if _, err = fmt.Fprint(w, "\n"); err != nil {
+					return
+				}
 			}
 		}
 	case html.ElementNode:
@@ -148,15 +167,29 @@ func printNode(w io.Writer, n *html.Node, pre bool, level int) (err error) {
 		if _, err = fmt.Fprint(w, ">", terminator); err != nil {
 			return
 		}
+		if !hasSingleTextChild(n) {
+			if _, err = fmt.Fprint(w, "\n"); err != nil {
+				return
+			}
+		}
 		if !isVoidElement(n) {
 			if err = printChildren(w, n, isPreFormatted(n.Data), level+1); err != nil {
 				return
 			}
-			if err = printIndent(w, level); err != nil {
+			if !hasSingleTextChild(n) {
+				if err = printIndent(w, level); err != nil {
+					return
+				}
+			}
+			if _, err = fmt.Fprintf(w, "</%s>", n.Data); err != nil {
 				return
 			}
-			if _, err = fmt.Fprintf(w, "</%s>\n", n.Data); err != nil {
-				return
+
+			if n.NextSibling == nil ||
+				(!unicode.IsPunct(getFirstRune(n.NextSibling.Data)) || n.NextSibling.Type == html.ElementNode) {
+				if _, err = fmt.Fprint(w, "\n"); err != nil {
+					return
+				}
 			}
 		}
 	case html.CommentNode:

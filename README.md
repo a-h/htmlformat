@@ -23,14 +23,12 @@ go install github.com/a-h/htmlformat/cmd/htmlformat@latest
 ### CLI
 
 ```bash
-echo '<ol><li style="&">A</li><li>B</li></ol>' | htmlformat
+echo '<ol><li style="&"><em>A</em></li><li>B</li></ol>' | htmlformat
 <ol>
  <li style="&">
-  A
+  <em>A</em>
  </li>
- <li>
-  B
- </li>
+ <li>B</li>
 </ol>
 ```
 
