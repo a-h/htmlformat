@@ -53,6 +53,15 @@ func TestFormat(t *testing.T) {
 			expected: `test 123` + "\n",
 		},
 		{
+			name: "script tags are not formatted",
+			input: `<script>
+	var x = 1;
+</script>`,
+			expected: `<script>
+	var x = 1;
+</script>` + "\n",
+		},
+		{
 			name:  "phrasing content element children are kept on the same line, including punctuation",
 			input: `<ul><li><a href="http://example.com">Test</a>.</li></ul>`,
 			expected: `<ul>

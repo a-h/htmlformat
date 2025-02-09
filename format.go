@@ -35,65 +35,8 @@ func Fragment(w io.Writer, r io.Reader) (err error) {
 // Nodes formats a slice of HTML nodes.
 func Nodes(w io.Writer, nodes []*html.Node) (err error) {
 	for _, node := range nodes {
-		if err = printNode(w, node, 0); err != nil {
+		if err = printNode(w, node, false, 0); err != nil {
 			return
-		}
-	}
-	return
-}
-
-// The <pre> tag indicates that the text within it should always be formatted
-// as is. See https://github.com/ericchiang/pup/issues/33
-func printPre(w io.Writer, n *html.Node) (err error) {
-	switch n.Type {
-	case html.TextNode:
-		s := n.Data
-		if _, err = fmt.Fprint(w, s); err != nil {
-			return
-		}
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			if err = printPre(w, c); err != nil {
-				return
-			}
-		}
-	case html.ElementNode:
-		if _, err = fmt.Fprintf(w, "<%s", n.Data); err != nil {
-			return
-		}
-		for _, a := range n.Attr {
-			val := html.EscapeString(a.Val)
-			if _, err = fmt.Fprintf(w, ` %s="%s"`, a.Key, val); err != nil {
-				return
-			}
-		}
-		if _, err = fmt.Fprint(w, ">"); err != nil {
-			return
-		}
-		if !isVoidElement(n) {
-			for c := n.FirstChild; c != nil; c = c.NextSibling {
-				if err = printPre(w, c); err != nil {
-					return
-				}
-			}
-			if _, err = fmt.Fprintf(w, "</%s>", n.Data); err != nil {
-				return
-			}
-		}
-	case html.CommentNode:
-		data := n.Data
-		if _, err = fmt.Fprintf(w, "<!--%s-->\n", data); err != nil {
-			return
-		}
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			if err = printPre(w, c); err != nil {
-				return
-			}
-		}
-	case html.DoctypeNode, html.DocumentNode:
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			if err = printPre(w, c); err != nil {
-				return
-			}
 		}
 	}
 	return
@@ -120,9 +63,15 @@ func hasSingleTextChild(n *html.Node) bool {
 	return n != nil && n.FirstChild != nil && n.FirstChild == n.LastChild && n.FirstChild.Type == html.TextNode
 }
 
-func printNode(w io.Writer, n *html.Node, level int) (err error) {
+func printNode(w io.Writer, n *html.Node, pre bool, level int) (err error) {
 	switch n.Type {
 	case html.TextNode:
+		if pre {
+			if _, err = fmt.Fprint(w, n.Data); err != nil {
+				return
+			}
+			return nil
+		}
 		s := n.Data
 		s = strings.TrimSpace(s)
 		if s != "" {
@@ -163,7 +112,7 @@ func printNode(w io.Writer, n *html.Node, level int) (err error) {
 			}
 		}
 		if !isVoidElement(n) {
-			if err = printChildren(w, n, level+1); err != nil {
+			if err = printChildren(w, n, isPreFormatted(n.Data), level+1); err != nil {
 				return
 			}
 			if !hasSingleTextChild(n) {
@@ -189,21 +138,25 @@ func printNode(w io.Writer, n *html.Node, level int) (err error) {
 		if _, err = fmt.Fprintf(w, "<!--%s-->\n", n.Data); err != nil {
 			return
 		}
-		if err = printChildren(w, n, level); err != nil {
+		if err = printChildren(w, n, false, level); err != nil {
 			return
 		}
 	case html.DoctypeNode, html.DocumentNode:
-		if err = printChildren(w, n, level); err != nil {
+		if err = printChildren(w, n, false, level); err != nil {
 			return
 		}
 	}
 	return
 }
 
-func printChildren(w io.Writer, n *html.Node, level int) (err error) {
+func isPreFormatted(s string) bool {
+	return s == "pre" || s == "script" || s == "style"
+}
+
+func printChildren(w io.Writer, n *html.Node, pre bool, level int) (err error) {
 	child := n.FirstChild
 	for child != nil {
-		if err = printNode(w, child, level); err != nil {
+		if err = printNode(w, child, pre, level); err != nil {
 			return
 		}
 		child = child.NextSibling
