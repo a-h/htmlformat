@@ -24,12 +24,8 @@ func TestFormat(t *testing.T) {
 			name:  "html attribute escaping is normalized",
 			input: `<ol> <li style="&amp;&#38;"> A </li> <li> B </li> </ol> `,
 			expected: `<ol>
- <li style="&amp;&amp;">
-  A
- </li>
- <li>
-  B
- </li>
+ <li style="&amp;&amp;">A</li>
+ <li>B</li>
 </ol>
 `,
 		},
@@ -37,12 +33,8 @@ func TestFormat(t *testing.T) {
 			name:  "bare ampersands are escaped",
 			input: `<ol> <li style="&"> A </li> <li> B </li> </ol> `,
 			expected: `<ol>
- <li style="&amp;">
-  A
- </li>
- <li>
-  B
- </li>
+ <li style="&amp;">A</li>
+ <li>B</li>
 </ol>
 `,
 		},
@@ -50,12 +42,8 @@ func TestFormat(t *testing.T) {
 			name:  "html elements are indented",
 			input: `<ol> <li class="name"> A </li> <li> B </li> </ol> `,
 			expected: `<ol>
- <li class="name">
-  A
- </li>
- <li>
-  B
- </li>
+ <li class="name">A</li>
+ <li>B</li>
 </ol>
 `,
 		},
@@ -63,6 +51,16 @@ func TestFormat(t *testing.T) {
 			name:     "text fragments are supported",
 			input:    `test 123`,
 			expected: `test 123` + "\n",
+		},
+		{
+			name:  "phrasing content element children are kept on the same line, including punctuation",
+			input: `<ul><li><a href="http://example.com">Test</a>.</li></ul>`,
+			expected: `<ul>
+ <li>
+  <a href="http://example.com">Test</a>.
+ </li>
+</ul>
+`,
 		},
 	}
 
