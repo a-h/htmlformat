@@ -42,63 +42,6 @@ func Nodes(w io.Writer, nodes []*html.Node) (err error) {
 	return
 }
 
-// The <pre> tag indicates that the text within it should always be formatted
-// as is. See https://github.com/ericchiang/pup/issues/33
-func printPre(w io.Writer, n *html.Node) (err error) {
-	switch n.Type {
-	case html.TextNode:
-		s := n.Data
-		if _, err = fmt.Fprint(w, s); err != nil {
-			return
-		}
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			if err = printPre(w, c); err != nil {
-				return
-			}
-		}
-	case html.ElementNode:
-		if _, err = fmt.Fprintf(w, "<%s", n.Data); err != nil {
-			return
-		}
-		for _, a := range n.Attr {
-			val := html.EscapeString(a.Val)
-			if _, err = fmt.Fprintf(w, ` %s="%s"`, a.Key, val); err != nil {
-				return
-			}
-		}
-		if _, err = fmt.Fprint(w, ">"); err != nil {
-			return
-		}
-		if !isVoidElement(n) {
-			for c := n.FirstChild; c != nil; c = c.NextSibling {
-				if err = printPre(w, c); err != nil {
-					return
-				}
-			}
-			if _, err = fmt.Fprintf(w, "</%s>", n.Data); err != nil {
-				return
-			}
-		}
-	case html.CommentNode:
-		data := n.Data
-		if _, err = fmt.Fprintf(w, "<!--%s-->\n", data); err != nil {
-			return
-		}
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			if err = printPre(w, c); err != nil {
-				return
-			}
-		}
-	case html.DoctypeNode, html.DocumentNode:
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			if err = printPre(w, c); err != nil {
-				return
-			}
-		}
-	}
-	return
-}
-
 // Is this node a tag with no end tag such as <meta> or <br>?
 // http://www.w3.org/TR/html-markup/syntax.html#syntax-elements
 func isVoidElement(n *html.Node) bool {
@@ -160,11 +103,7 @@ func printNode(w io.Writer, n *html.Node, pre bool, level int) (err error) {
 				return
 			}
 		}
-		terminator := "\n"
-		if isPreFormatted(n.Data) {
-			terminator = ""
-		}
-		if _, err = fmt.Fprint(w, ">", terminator); err != nil {
+		if _, err = fmt.Fprint(w, ">"); err != nil {
 			return
 		}
 		if !hasSingleTextChild(n) {
