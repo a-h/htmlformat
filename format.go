@@ -33,7 +33,7 @@ func Fragment(w io.Writer, r io.Reader) (err error) {
 // Nodes formats a slice of HTML nodes.
 func Nodes(w io.Writer, nodes []*html.Node) (err error) {
 	for _, node := range nodes {
-		if err = printNode(w, node, 0); err != nil {
+		if err = printNode(w, node, false, 0); err != nil {
 			return
 		}
 	}
@@ -109,9 +109,15 @@ func isVoidElement(n *html.Node) bool {
 	return false
 }
 
-func printNode(w io.Writer, n *html.Node, level int) (err error) {
+func printNode(w io.Writer, n *html.Node, pre bool, level int) (err error) {
 	switch n.Type {
 	case html.TextNode:
+		if pre {
+			if _, err = fmt.Fprint(w, n.Data); err != nil {
+				return
+			}
+			return nil
+		}
 		s := n.Data
 		s = strings.TrimSpace(s)
 		if s != "" {
@@ -135,11 +141,15 @@ func printNode(w io.Writer, n *html.Node, level int) (err error) {
 				return
 			}
 		}
-		if _, err = fmt.Fprintln(w, ">"); err != nil {
+		terminator := "\n"
+		if isPreFormatted(n.Data) {
+			terminator = ""
+		}
+		if _, err = fmt.Fprint(w, ">", terminator); err != nil {
 			return
 		}
 		if !isVoidElement(n) {
-			if err = printChildren(w, n, level+1); err != nil {
+			if err = printChildren(w, n, isPreFormatted(n.Data), level+1); err != nil {
 				return
 			}
 			if err = printIndent(w, level); err != nil {
@@ -156,21 +166,25 @@ func printNode(w io.Writer, n *html.Node, level int) (err error) {
 		if _, err = fmt.Fprintf(w, "<!--%s-->\n", n.Data); err != nil {
 			return
 		}
-		if err = printChildren(w, n, level); err != nil {
+		if err = printChildren(w, n, false, level); err != nil {
 			return
 		}
 	case html.DoctypeNode, html.DocumentNode:
-		if err = printChildren(w, n, level); err != nil {
+		if err = printChildren(w, n, false, level); err != nil {
 			return
 		}
 	}
 	return
 }
 
-func printChildren(w io.Writer, n *html.Node, level int) (err error) {
+func isPreFormatted(s string) bool {
+	return s == "pre" || s == "script" || s == "style"
+}
+
+func printChildren(w io.Writer, n *html.Node, pre bool, level int) (err error) {
 	child := n.FirstChild
 	for child != nil {
-		if err = printNode(w, child, level); err != nil {
+		if err = printNode(w, child, pre, level); err != nil {
 			return
 		}
 		child = child.NextSibling

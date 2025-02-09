@@ -64,6 +64,15 @@ func TestFormat(t *testing.T) {
 			input:    `test 123`,
 			expected: `test 123` + "\n",
 		},
+		{
+			name: "script tags are not formatted",
+			input: `<script>
+	var x = 1;
+</script>`,
+			expected: `<script>
+	var x = 1;
+</script>` + "\n",
+		},
 	}
 
 	for _, test := range tests {
